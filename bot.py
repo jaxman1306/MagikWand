@@ -53,7 +53,7 @@ async def magik(ctx):
 if TOKEN is None:
     print("TOKEN IS NONE")
 else:
-    print("TOKEN exists")
+    print("TOKEN exists:", TOKEN is not None)
     print("TOKEN length:", len(TOKEN))
     print("TOKEN first 5 chars:", TOKEN[:5])
 
