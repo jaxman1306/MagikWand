@@ -19,6 +19,7 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
 
 
+# ---------------- BASIC COMMANDS ----------------
 @bot.command()
 async def ping(ctx):
     await ctx.send("Pong!")
@@ -35,55 +36,63 @@ async def avatar(ctx, member: discord.Member = None):
     await ctx.send(member.display_avatar.url)
 
 
-# ---------------- MAGIK (2 IMAGE BLEND) ----------------
+# ---------------- MAGIK (SINGLE IMAGE BLUR EFFECT) ----------------
 @bot.command()
 async def magik(ctx):
-    if len(ctx.message.attachments) < 2:
-        await ctx.send("Send 2 images with the command.")
+    if not ctx.message.attachments:
+        await ctx.send("Send 1 image with the command.")
         return
 
-    img1_url = ctx.message.attachments[0].url
-    img2_url = ctx.message.attachments[1].url
+    img_data = requests.get(ctx.message.attachments[0].url).content
+    img = Image.open(BytesIO(img_data)).convert("RGB")
 
-    img1 = Image.open(BytesIO(requests.get(img1_url).content)).convert("RGBA")
-    img2 = Image.open(BytesIO(requests.get(img2_url).content)).convert("RGBA")
-
-    img2 = img2.resize(img1.size)
-
-    frames = []
-    for i in range(11):
-        alpha = i / 10
-        frames.append(Image.blend(img1, img2, alpha))
+    # simple transformation effect
+    img = img.resize((img.width // 2, img.height // 2))
+    img = img.filter(Image.BLUR)
 
     output = BytesIO()
-    frames[-1].save(output, format="PNG")
+    img.save(output, format="PNG")
     output.seek(0)
 
     await ctx.send(file=discord.File(output, "magik.png"))
 
 
-# ---------------- PETER GRIFFIN GIF ----------------
+# ---------------- PETER GRIFFIN (RAW TENOR LINK ONLY) ----------------
 @bot.command()
 async def peter_griffin(ctx):
-    gifs = [
-        "https://media.tenor.com/8n3YhXy9Q7kAAAAC/peter-griffin-family-guy.gif",
-        "https://media.tenor.com/3JQd7Qz7vVwAAAAC/peter-griffin-dance.gif",
-        "https://media.tenor.com/l0Q8f9hQqXcAAAAC/family-guy-peter.gif"
-    ]
-    await ctx.send(random.choice(gifs))
+    api_key = "LIVDSRZULELA"
+
+    res = requests.get(
+        "https://tenor.googleapis.com/v2/search",
+        params={
+            "q": "peter griffin family guy",
+            "key": api_key,
+            "limit": 20,
+            "media_filter": "gif"
+        }
+    )
+
+    data = res.json()
+
+    if "results" not in data or not data["results"]:
+        await ctx.send("No GIF found.")
+        return
+
+    gif_url = random.choice(data["results"])["media_formats"]["gif"]["url"]
+
+    # RAW LINK ONLY (NO EMBED FORMATTING)
+    await ctx.send(gif_url)
 
 
-# ---------------- MEME CAPTION (IMPACT STYLE) ----------------
+# ---------------- MEME CAPTION (TOP BAR TEXT) ----------------
 @bot.command()
 async def caption(ctx, *, text: str):
     if not ctx.message.attachments:
-        await ctx.send("Send an image with the command.")
+        await ctx.send("Send 1 image with the command.")
         return
 
-    img_url = ctx.message.attachments[0].url
-    img = Image.open(BytesIO(requests.get(img_url).content)).convert("RGB")
+    img = Image.open(BytesIO(requests.get(ctx.message.attachments[0].url).content)).convert("RGB")
 
-    # resize font dynamically
     font_size = max(20, img.width // 10)
 
     try:
@@ -93,20 +102,16 @@ async def caption(ctx, *, text: str):
 
     draw = ImageDraw.Draw(img)
 
-    # caption box height
-    box_height = font_size + 30
+    bar_height = font_size + 30
+    draw.rectangle([(0, 0), (img.width, bar_height)], fill="white")
 
-    # draw white bar
-    draw.rectangle([(0, 0), (img.width, box_height)], fill="white")
-
-    # center text
     bbox = draw.textbbox((0, 0), text, font=font)
     text_width = bbox[2] - bbox[0]
 
-    text_x = (img.width - text_width) / 2
-    text_y = 10
+    x = (img.width - text_width) / 2
+    y = 10
 
-    draw.text((text_x, text_y), text, fill="black", font=font)
+    draw.text((x, y), text, fill="black", font=font)
 
     output = BytesIO()
     img.save(output, format="PNG")
@@ -115,8 +120,9 @@ async def caption(ctx, *, text: str):
     await ctx.send(file=discord.File(output, "caption.png"))
 
 
-# ---------------- START BOT ----------------
-if TOKEN is None:
-    print("TOKEN IS NONE")
-else:
-    bot.run(TOKEN)
+# ---------------- START BOT (NO DUPLICATION POSSIBLE HERE) ----------------
+if __name__ == "__main__":
+    if TOKEN is None:
+        print("TOKEN IS NONE")
+    else:
+        bot.run(TOKEN)
