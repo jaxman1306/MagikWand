@@ -36,7 +36,7 @@ async def avatar(ctx, member: discord.Member = None):
     await ctx.send(member.display_avatar.url)
 
 
-# ---------------- MAGIK (FIXED) ----------------
+# ---------------- MAGIK (1 IMAGE FIXED) ----------------
 @bot.command()
 async def magik(ctx):
     if not ctx.message.attachments:
@@ -58,28 +58,27 @@ async def magik(ctx):
         await ctx.send(file=discord.File(output, "magik.png"))
 
     except Exception as e:
-        await ctx.send("Magik failed.")
         print(e)
+        await ctx.send("Magik failed.")
 
 
-# ---------------- PETER GRIFFIN (TENOR + FALLBACK + RAW LINK) ----------------
+# ---------------- PETER GRIFFIN (FIXED TENOR + FALLBACK) ----------------
 @bot.command()
 async def peter_griffin(ctx):
     api_key = "LIVDSRZULELA"
 
-    fallback_gifs = [
+    fallback = [
         "https://media.tenor.com/8n3YhXy9Q7kAAAAC/peter-griffin-family-guy.gif",
-        "https://media.tenor.com/3JQd7Qz7vVwAAAAC/peter-griffin-dance.gif",
-        "https://media.tenor.com/l0Q8f9hQqXcAAAAC/family-guy-peter.gif"
+        "https://media.tenor.com/3JQd7Qz7vVwAAAAC/peter-griffin-dance.gif"
     ]
 
     try:
         res = requests.get(
             "https://tenor.googleapis.com/v2/search",
             params={
-                "q": "peter griffin family guy",
+                "q": "peter griffin",
                 "key": api_key,
-                "limit": 10,
+                "limit": 20,
                 "media_filter": "gif"
             },
             timeout=10
@@ -89,19 +88,27 @@ async def peter_griffin(ctx):
         results = data.get("results", [])
 
         if not results:
-            gif_url = random.choice(fallback_gifs)
-        else:
-            gif_url = random.choice(results)["media_formats"]["gif"]["url"]
+            await ctx.send(random.choice(fallback))
+            return
+
+        gif_url = None
+        for r in results:
+            gif_url = r.get("media_formats", {}).get("gif", {}).get("url")
+            if gif_url:
+                break
+
+        if not gif_url:
+            gif_url = random.choice(fallback)
 
         # RAW LINK ONLY (no embed formatting)
         await ctx.send(gif_url)
 
     except Exception as e:
         print(e)
-        await ctx.send(random.choice(fallback_gifs))
+        await ctx.send(random.choice(fallback))
 
 
-# ---------------- CAPTION (BIG MEME TEXT FIXED) ----------------
+# ---------------- CAPTION (AUTO FIT TEXT MEME STYLE) ----------------
 @bot.command()
 async def caption(ctx, *, text: str):
     if not ctx.message.attachments:
@@ -112,17 +119,32 @@ async def caption(ctx, *, text: str):
         img_data = requests.get(ctx.message.attachments[0].url).content
         img = Image.open(BytesIO(img_data)).convert("RGB")
 
-        # 🔥 BIG MEME SCALING
-        font_size = int(img.width * 0.12)
+        draw = ImageDraw.Draw(img)
+
+        # start large
+        font_size = int(img.width * 0.14)
 
         try:
             font = ImageFont.truetype("arial.ttf", font_size)
         except:
             font = ImageFont.load_default()
 
-        draw = ImageDraw.Draw(img)
-
         bar_height = font_size + 40
+
+        # shrink until it fits
+        while True:
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = bbox[2] - bbox[0]
+
+            if text_width <= img.width - 40 or font_size <= 15:
+                break
+
+            font_size -= 2
+            try:
+                font = ImageFont.truetype("arial.ttf", font_size)
+            except:
+                font = ImageFont.load_default()
+
         draw.rectangle([(0, 0), (img.width, bar_height)], fill="white")
 
         bbox = draw.textbbox((0, 0), text, font=font)
@@ -141,8 +163,8 @@ async def caption(ctx, *, text: str):
         await ctx.send(file=discord.File(output, "caption.png"))
 
     except Exception as e:
-        await ctx.send("Caption failed.")
         print(e)
+        await ctx.send("Caption failed.")
 
 
 # ---------------- START BOT ----------------
