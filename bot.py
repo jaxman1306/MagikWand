@@ -4,7 +4,6 @@ from discord.ext import commands
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 import requests
 from io import BytesIO
-import random
 
 TOKEN = os.getenv("TOKEN")
 
@@ -19,7 +18,7 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
 
 
-# ---------------- BASIC ----------------
+# ---------------- BASIC COMMANDS ----------------
 @bot.command()
 async def ping(ctx):
     await ctx.send("Pong!")
@@ -36,7 +35,7 @@ async def avatar(ctx, member: discord.Member = None):
     await ctx.send(member.display_avatar.url)
 
 
-# ---------------- MAGIK (1 IMAGE FIXED) ----------------
+# ---------------- MAGIK (1 IMAGE EFFECT FIXED) ----------------
 @bot.command()
 async def magik(ctx):
     if not ctx.message.attachments:
@@ -62,53 +61,13 @@ async def magik(ctx):
         await ctx.send("Magik failed.")
 
 
-# ---------------- PETER GRIFFIN (FIXED TENOR + FALLBACK) ----------------
-@bot.command()
-async def peter_griffin(ctx):
-    api_key = "LIVDSRZULELA"
-
-    fallback = [
-        "https://media.tenor.com/8n3YhXy9Q7kAAAAC/peter-griffin-family-guy.gif",
-        "https://media.tenor.com/3JQd7Qz7vVwAAAAC/peter-griffin-dance.gif"
-    ]
-
-    try:
-        res = requests.get(
-            "https://tenor.googleapis.com/v2/search",
-            params={
-                "q": "peter griffin",
-                "key": api_key,
-                "limit": 20,
-                "media_filter": "gif"
-            },
-            timeout=10
-        )
-
-        data = res.json()
-        results = data.get("results", [])
-
-        if not results:
-            await ctx.send(random.choice(fallback))
-            return
-
-        gif_url = None
-        for r in results:
-            gif_url = r.get("media_formats", {}).get("gif", {}).get("url")
-            if gif_url:
-                break
-
-        if not gif_url:
-            gif_url = random.choice(fallback)
-
-        # RAW LINK ONLY (no embed formatting)
-        await ctx.send(gif_url)
-
-    except Exception as e:
-        print(e)
-        await ctx.send(random.choice(fallback))
+# ---------------- PETER (FIXED COMMAND NAME) ----------------
+@bot.command(name="peter")
+async def peter(ctx):
+    await ctx.send("https://tenor.com/view/peter-gif-6441173819862827223")
 
 
-# ---------------- CAPTION (AUTO FIT TEXT MEME STYLE) ----------------
+# ---------------- CAPTION (AUTO FIT MEME TEXT) ----------------
 @bot.command()
 async def caption(ctx, *, text: str):
     if not ctx.message.attachments:
@@ -121,7 +80,6 @@ async def caption(ctx, *, text: str):
 
         draw = ImageDraw.Draw(img)
 
-        # start large
         font_size = int(img.width * 0.14)
 
         try:
@@ -131,7 +89,7 @@ async def caption(ctx, *, text: str):
 
         bar_height = font_size + 40
 
-        # shrink until it fits
+        # shrink until fits
         while True:
             bbox = draw.textbbox((0, 0), text, font=font)
             text_width = bbox[2] - bbox[0]
