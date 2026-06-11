@@ -1,10 +1,11 @@
+import os
 import discord
 from discord.ext import commands
 from PIL import Image, ImageEnhance, ImageFilter
 import requests
 from io import BytesIO
 
-TOKEN = "MTUxNDU3NTMyMTQ4NjA2OTc4MA.Goz5GJ.r9YQ83kmCnlrG3-7zODIbGeBAiTnzA1Unv0b8o"
+TOKEN = os.getenv("TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True
