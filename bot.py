@@ -1,7 +1,7 @@
 import os
 import discord
 from discord.ext import commands
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 import requests
 from io import BytesIO
 import random
@@ -19,7 +19,7 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
 
 
-# ---------------- BASIC COMMANDS ----------------
+# ---------------- BASIC ----------------
 @bot.command()
 async def ping(ctx):
     await ctx.send("Pong!")
@@ -36,91 +36,116 @@ async def avatar(ctx, member: discord.Member = None):
     await ctx.send(member.display_avatar.url)
 
 
-# ---------------- MAGIK (SINGLE IMAGE BLUR EFFECT) ----------------
+# ---------------- MAGIK (FIXED) ----------------
 @bot.command()
 async def magik(ctx):
     if not ctx.message.attachments:
         await ctx.send("Send 1 image with the command.")
         return
 
-    img_data = requests.get(ctx.message.attachments[0].url).content
-    img = Image.open(BytesIO(img_data)).convert("RGB")
+    try:
+        img_data = requests.get(ctx.message.attachments[0].url).content
+        img = Image.open(BytesIO(img_data)).convert("RGB")
 
-    # simple transformation effect
-    img = img.resize((img.width // 2, img.height // 2))
-    img = img.filter(Image.BLUR)
+        img = img.resize((img.width // 2, img.height // 2))
+        img = img.filter(ImageFilter.BLUR)
+        img = ImageEnhance.Contrast(img).enhance(1.8)
 
-    output = BytesIO()
-    img.save(output, format="PNG")
-    output.seek(0)
+        output = BytesIO()
+        img.save(output, format="PNG")
+        output.seek(0)
 
-    await ctx.send(file=discord.File(output, "magik.png"))
+        await ctx.send(file=discord.File(output, "magik.png"))
+
+    except Exception as e:
+        await ctx.send("Magik failed.")
+        print(e)
 
 
-# ---------------- PETER GRIFFIN (RAW TENOR LINK ONLY) ----------------
+# ---------------- PETER GRIFFIN (TENOR + FALLBACK + RAW LINK) ----------------
 @bot.command()
 async def peter_griffin(ctx):
     api_key = "LIVDSRZULELA"
 
-    res = requests.get(
-        "https://tenor.googleapis.com/v2/search",
-        params={
-            "q": "peter griffin family guy",
-            "key": api_key,
-            "limit": 20,
-            "media_filter": "gif"
-        }
-    )
+    fallback_gifs = [
+        "https://media.tenor.com/8n3YhXy9Q7kAAAAC/peter-griffin-family-guy.gif",
+        "https://media.tenor.com/3JQd7Qz7vVwAAAAC/peter-griffin-dance.gif",
+        "https://media.tenor.com/l0Q8f9hQqXcAAAAC/family-guy-peter.gif"
+    ]
 
-    data = res.json()
+    try:
+        res = requests.get(
+            "https://tenor.googleapis.com/v2/search",
+            params={
+                "q": "peter griffin family guy",
+                "key": api_key,
+                "limit": 10,
+                "media_filter": "gif"
+            },
+            timeout=10
+        )
 
-    if "results" not in data or not data["results"]:
-        await ctx.send("No GIF found.")
-        return
+        data = res.json()
+        results = data.get("results", [])
 
-    gif_url = random.choice(data["results"])["media_formats"]["gif"]["url"]
+        if not results:
+            gif_url = random.choice(fallback_gifs)
+        else:
+            gif_url = random.choice(results)["media_formats"]["gif"]["url"]
 
-    # RAW LINK ONLY (NO EMBED FORMATTING)
-    await ctx.send(gif_url)
+        # RAW LINK ONLY (no embed formatting)
+        await ctx.send(gif_url)
+
+    except Exception as e:
+        print(e)
+        await ctx.send(random.choice(fallback_gifs))
 
 
-# ---------------- MEME CAPTION (TOP BAR TEXT) ----------------
+# ---------------- CAPTION (BIG MEME TEXT FIXED) ----------------
 @bot.command()
 async def caption(ctx, *, text: str):
     if not ctx.message.attachments:
         await ctx.send("Send 1 image with the command.")
         return
 
-    img = Image.open(BytesIO(requests.get(ctx.message.attachments[0].url).content)).convert("RGB")
-
-    font_size = max(20, img.width // 10)
-
     try:
-        font = ImageFont.truetype("arial.ttf", font_size)
-    except:
-        font = ImageFont.load_default()
+        img_data = requests.get(ctx.message.attachments[0].url).content
+        img = Image.open(BytesIO(img_data)).convert("RGB")
 
-    draw = ImageDraw.Draw(img)
+        # 🔥 BIG MEME SCALING
+        font_size = int(img.width * 0.12)
 
-    bar_height = font_size + 30
-    draw.rectangle([(0, 0), (img.width, bar_height)], fill="white")
+        try:
+            font = ImageFont.truetype("arial.ttf", font_size)
+        except:
+            font = ImageFont.load_default()
 
-    bbox = draw.textbbox((0, 0), text, font=font)
-    text_width = bbox[2] - bbox[0]
+        draw = ImageDraw.Draw(img)
 
-    x = (img.width - text_width) / 2
-    y = 10
+        bar_height = font_size + 40
+        draw.rectangle([(0, 0), (img.width, bar_height)], fill="white")
 
-    draw.text((x, y), text, fill="black", font=font)
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
 
-    output = BytesIO()
-    img.save(output, format="PNG")
-    output.seek(0)
+        x = (img.width - text_width) / 2
+        y = (bar_height - text_height) / 2
 
-    await ctx.send(file=discord.File(output, "caption.png"))
+        draw.text((x, y), text, fill="black", font=font)
+
+        output = BytesIO()
+        img.save(output, format="PNG")
+        output.seek(0)
+
+        await ctx.send(file=discord.File(output, "caption.png"))
+
+    except Exception as e:
+        await ctx.send("Caption failed.")
+        print(e)
 
 
-# ---------------- START BOT (NO DUPLICATION POSSIBLE HERE) ----------------
+# ---------------- START BOT ----------------
 if __name__ == "__main__":
     if TOKEN is None:
         print("TOKEN IS NONE")
