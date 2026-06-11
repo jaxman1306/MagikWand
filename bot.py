@@ -51,6 +51,10 @@ async def magik(ctx):
 
 
 if TOKEN is None:
-    print("ERROR: TOKEN is missing in environment variables (Render)")
+    print("TOKEN IS NONE")
 else:
+    print("TOKEN exists")
+    print("TOKEN length:", len(TOKEN))
+    print("TOKEN first 5 chars:", TOKEN[:5])
+
     bot.run(TOKEN)
