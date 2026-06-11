@@ -1,9 +1,10 @@
 import os
 import discord
 from discord.ext import commands
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image
 import requests
 from io import BytesIO
+import random
 
 TOKEN = os.getenv("TOKEN")
 
@@ -34,28 +35,50 @@ async def avatar(ctx, member: discord.Member = None):
     await ctx.send(member.display_avatar.url)
 
 
+# IMAGE BLEND MAGIK COMMAND (2 images)
 @bot.command()
 async def magik(ctx):
-    if not ctx.message.attachments:
-        await ctx.send("Send an image with the command.")
+    if len(ctx.message.attachments) < 2:
+        await ctx.send("Send 2 images with the command.")
         return
 
-    url = ctx.message.attachments[0].url
-    response = requests.get(url)
+    img1_url = ctx.message.attachments[0].url
+    img2_url = ctx.message.attachments[1].url
 
-    img = Image.open(BytesIO(response.content)).convert("RGB")
+    img1_data = requests.get(img1_url).content
+    img2_data = requests.get(img2_url).content
 
-    img = img.resize((img.width // 2, img.height // 2))
-    img = img.filter(ImageFilter.BLUR)
-    img = ImageEnhance.Contrast(img).enhance(2)
+    img1 = Image.open(BytesIO(img1_data)).convert("RGBA")
+    img2 = Image.open(BytesIO(img2_data)).convert("RGBA")
+
+    img2 = img2.resize(img1.size)
+
+    frames = []
+    for i in range(11):
+        alpha = i / 10
+        frame = Image.blend(img1, img2, alpha)
+        frames.append(frame)
 
     output = BytesIO()
-    img.save(output, format="PNG")
+    frames[-1].save(output, format="PNG")
     output.seek(0)
 
-    await ctx.send(file=discord.File(output, "magik.png"))
+    await ctx.send(file=discord.File(output, filename="magik.png"))
 
 
+# PETER GRIFFIN GIF COMMAND
+@bot.command()
+async def peter_griffin(ctx):
+    peter_gifs = [
+        "https://media.tenor.com/8n3YhXy9Q7kAAAAC/peter-griffin-family-guy.gif",
+        "https://media.tenor.com/3JQd7Qz7vVwAAAAC/peter-griffin-dance.gif",
+        "https://media.tenor.com/l0Q8f9hQqXcAAAAC/family-guy-peter.gif"
+    ]
+
+    await ctx.send(random.choice(peter_gifs))
+
+
+# START BOT
 if TOKEN is None:
     print("TOKEN IS NONE")
 else:
