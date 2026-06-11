@@ -5,7 +5,6 @@ from PIL import Image, ImageEnhance, ImageFilter
 import requests
 from io import BytesIO
 
-# Get token from Render environment variables
 TOKEN = os.getenv("TOKEN")
 
 intents = discord.Intents.default()
@@ -40,7 +39,6 @@ async def magik(ctx):
 
     img = Image.open(BytesIO(response.content)).convert("RGB")
 
-    # simple effects
     img = img.resize((img.width // 2, img.height // 2))
     img = img.filter(ImageFilter.BLUR)
     img = ImageEnhance.Contrast(img).enhance(2)
@@ -52,7 +50,6 @@ async def magik(ctx):
     await ctx.send(file=discord.File(output, "magik.png"))
 
 
-# safety check so it doesn't silently fail
 if TOKEN is None:
     print("ERROR: TOKEN is missing in environment variables (Render)")
 else:
