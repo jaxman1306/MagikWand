@@ -4,6 +4,8 @@ from discord.ext import commands
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 import requests
 from io import BytesIO
+import random
+import sys
 
 TOKEN = os.getenv("TOKEN")
 
@@ -12,13 +14,29 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix=",m ", intents=intents)
 
+# ---------------- DOUBLE INSTANCE GUARD ----------------
+# prevents silent duplicate logic inside same process
+if hasattr(sys, "_bot_running"):
+    print("Bot already running in this process. Exiting duplicate.")
+    sys.exit()
+sys._bot_running = True
+
 
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
 
 
-# ---------------- BASIC COMMANDS ----------------
+# ---------------- SAFE MESSAGE HANDLER ----------------
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    await bot.process_commands(message)
+
+
+# ---------------- BASIC ----------------
 @bot.command()
 async def ping(ctx):
     await ctx.send("Pong!")
@@ -35,7 +53,7 @@ async def avatar(ctx, member: discord.Member = None):
     await ctx.send(member.display_avatar.url)
 
 
-# ---------------- MAGIK (1 IMAGE EFFECT FIXED) ----------------
+# ---------------- MAGIK (1 IMAGE) ----------------
 @bot.command()
 async def magik(ctx):
     if not ctx.message.attachments:
@@ -61,13 +79,13 @@ async def magik(ctx):
         await ctx.send("Magik failed.")
 
 
-# ---------------- PETER (FIXED COMMAND NAME) ----------------
+# ---------------- PETER (FIXED LINK ONLY) ----------------
 @bot.command(name="peter")
 async def peter(ctx):
     await ctx.send("https://tenor.com/view/peter-gif-6441173819862827223")
 
 
-# ---------------- CAPTION (AUTO FIT MEME TEXT) ----------------
+# ---------------- CAPTION (AUTO FIT TEXT) ----------------
 @bot.command()
 async def caption(ctx, *, text: str):
     if not ctx.message.attachments:
@@ -89,7 +107,7 @@ async def caption(ctx, *, text: str):
 
         bar_height = font_size + 40
 
-        # shrink until fits
+        # shrink text until fits
         while True:
             bbox = draw.textbbox((0, 0), text, font=font)
             text_width = bbox[2] - bbox[0]
@@ -125,7 +143,7 @@ async def caption(ctx, *, text: str):
         await ctx.send("Caption failed.")
 
 
-# ---------------- START BOT ----------------
+# ---------------- START ----------------
 if __name__ == "__main__":
     if TOKEN is None:
         print("TOKEN IS NONE")
