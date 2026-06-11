@@ -1,0 +1,47 @@
+import discord
+from discord.ext import commands
+from PIL import Image, ImageEnhance, ImageFilter
+import requests
+from io import BytesIO
+
+TOKEN = "MTUxNDU3NTMyMTQ4NjA2OTc4MA.Goz5GJ.r9YQ83kmCnlrG3-7zODIbGeBAiTnzA1Unv0b8o"
+
+intents = discord.Intents.default()
+intents.message_content = True
+
+bot = commands.Bot(command_prefix=",m ", intents=intents)
+
+@bot.event
+async def on_ready():
+    print(f"Logged in as {bot.user}")
+
+@bot.command()
+async def ping(ctx):
+    await ctx.send("Pong!")
+
+@bot.command()
+async def hello(ctx):
+    await ctx.send("Hello!")
+
+@bot.command()
+async def magik(ctx):
+    if not ctx.message.attachments:
+        await ctx.send("Send an image with the command.")
+        return
+
+    url = ctx.message.attachments[0].url
+    response = requests.get(url)
+
+    img = Image.open(BytesIO(response.content)).convert("RGB")
+
+    img = img.resize((img.width // 2, img.height // 2))
+    img = img.filter(ImageFilter.BLUR)
+    img = ImageEnhance.Contrast(img).enhance(2)
+
+    output = BytesIO()
+    img.save(output, format="PNG")
+    output.seek(0)
+
+    await ctx.send(file=discord.File(output, "magik.png"))
+
+bot.run(TOKEN)
