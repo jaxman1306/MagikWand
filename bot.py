@@ -5,6 +5,7 @@ from PIL import Image, ImageEnhance, ImageFilter
 import requests
 from io import BytesIO
 
+# Get token from Render environment variables
 TOKEN = os.getenv("TOKEN")
 
 intents = discord.Intents.default()
@@ -12,17 +13,21 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix=",m ", intents=intents)
 
+
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
+
 
 @bot.command()
 async def ping(ctx):
     await ctx.send("Pong!")
 
+
 @bot.command()
 async def hello(ctx):
     await ctx.send("Hello!")
+
 
 @bot.command()
 async def magik(ctx):
@@ -35,6 +40,7 @@ async def magik(ctx):
 
     img = Image.open(BytesIO(response.content)).convert("RGB")
 
+    # simple effects
     img = img.resize((img.width // 2, img.height // 2))
     img = img.filter(ImageFilter.BLUR)
     img = ImageEnhance.Contrast(img).enhance(2)
@@ -45,4 +51,9 @@ async def magik(ctx):
 
     await ctx.send(file=discord.File(output, "magik.png"))
 
-bot.run(TOKEN)
+
+# safety check so it doesn't silently fail
+if TOKEN is None:
+    print("ERROR: TOKEN is missing in environment variables (Render)")
+else:
+    bot.run(TOKEN)
