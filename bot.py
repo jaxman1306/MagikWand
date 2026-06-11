@@ -29,6 +29,12 @@ async def hello(ctx):
 
 
 @bot.command()
+async def avatar(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    await ctx.send(member.display_avatar.url)
+
+
+@bot.command()
 async def magik(ctx):
     if not ctx.message.attachments:
         await ctx.send("Send an image with the command.")
@@ -53,8 +59,4 @@ async def magik(ctx):
 if TOKEN is None:
     print("TOKEN IS NONE")
 else:
-    print("TOKEN exists:", TOKEN is not None)
-    print("TOKEN length:", len(TOKEN))
-    print("TOKEN first 5 chars:", TOKEN[:5])
-
     bot.run(TOKEN)
